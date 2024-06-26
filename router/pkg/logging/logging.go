@@ -2,6 +2,7 @@ package logging
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"os"
 	"strings"
@@ -17,8 +18,8 @@ const (
 
 type RequestIDKey struct{}
 
-func New(prettyLogging bool, debug bool, level zapcore.Level) *zap.Logger {
-	return newZapLogger(zapcore.AddSync(os.Stdout), prettyLogging, debug, level)
+func New(prettyLogging bool, debug bool, level zapcore.Level, fileLogging bool, fileName string) *zap.Logger {
+	return newZapLogger(zapcore.AddSync(os.Stdout), prettyLogging, debug, level, fileLogging, fileName)
 }
 
 func zapBaseEncoderConfig() zapcore.EncoderConfig {
@@ -46,6 +47,19 @@ func zapConsoleEncoder() zapcore.Encoder {
 	return zapcore.NewConsoleEncoder(ec)
 }
 
+// WIP: fileName should be a log file prefix and using rotating logs with configurable file size
+func zapFileCore(fileName string, logLevel zapcore.Level) (zapcore.Core, error) {
+	logFile, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return nil, err
+	}
+	jsonEncoder := ZapJsonEncoder()
+	fileWriter := zapcore.AddSync(logFile)
+	fileCore := zapcore.NewCore(jsonEncoder, fileWriter, logLevel)
+
+	return fileCore, nil
+}
+
 func attachBaseFields(logger *zap.Logger) *zap.Logger {
 	host, err := os.Hostname()
 	if err != nil {
@@ -60,7 +74,7 @@ func attachBaseFields(logger *zap.Logger) *zap.Logger {
 	return logger
 }
 
-func newZapLogger(syncer zapcore.WriteSyncer, prettyLogging bool, debug bool, level zapcore.Level) *zap.Logger {
+func newZapLogger(syncer zapcore.WriteSyncer, prettyLogging bool, debug bool, level zapcore.Level, fileLogging bool, fileName string) *zap.Logger {
 	var encoder zapcore.Encoder
 	var zapOpts []zap.Option
 
@@ -76,11 +90,23 @@ func newZapLogger(syncer zapcore.WriteSyncer, prettyLogging bool, debug bool, le
 
 	zapOpts = append(zapOpts, zap.AddStacktrace(zap.ErrorLevel))
 
-	zapLogger := zap.New(zapcore.NewCore(
+	core := zapcore.NewCore(
 		encoder,
 		syncer,
 		level,
-	), zapOpts...)
+	)
+
+	if fileLogging {
+		fileCore, err := zapFileCore(fileName, level)
+		if err != nil {
+			// standard logging, since we don't have a logger yet
+			log.Printf("Can't create file logger with file name %s. Error: %v", fileName, err)
+		} else {
+			core = zapcore.NewTee(fileCore, core)
+		}
+	}
+
+	zapLogger := zap.New(core, zapOpts...)
 
 	if prettyLogging {
 		return zapLogger

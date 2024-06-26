@@ -572,6 +572,16 @@
       "description": "Enable the JSON log format. The JSON log format is used to log the logs in JSON format. The default value is true. If the value is false, the logs are logged a human friendly text format.",
       "default": true
     },
+    "file_log": {
+      "type": "boolean",
+      "description": "Enable logging to a file. You log simultaneously to a file and to the console. The default value is false. If the value is is true, a log file will be created.",
+      "default": false
+    },
+    "file_log_name": {
+      "type": "string",
+      "description": "Set the log file path. Make sure you can write to the set path. Only used if file_log is true. When not set or not writable, an error is shown and the router starts normal.",
+      "default": "/tmp/cosmos-router.log"
+    },
     "shutdown_delay": {
       "type": "string",
       "duration": {
