@@ -48,7 +48,7 @@ func zapConsoleEncoder() zapcore.Encoder {
 }
 
 // WIP: fileName should be a log file prefix and using rotating logs with configurable file size
-func zapFileCore(fileName string, logLevel zapcore.Level) (zapcore.Core, error) {
+func ZapFileCore(fileName string, logLevel zapcore.Level) (zapcore.Core, error) {
 	logFile, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return nil, err
@@ -97,7 +97,7 @@ func newZapLogger(syncer zapcore.WriteSyncer, prettyLogging bool, debug bool, le
 	)
 
 	if fileLogging {
-		fileCore, err := zapFileCore(fileName, level)
+		fileCore, err := ZapFileCore(fileName, level)
 		if err != nil {
 			// standard logging, since we don't have a logger yet
 			log.Printf("Can't create file logger with file name %s. Error: %v", fileName, err)
