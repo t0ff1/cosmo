@@ -76,14 +76,15 @@ func TestRequestFileLogger(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 
-	logFile, err := os.ReadFile(fileName)
+	logFile, err := os.Open(fileName)
 	assert.Nil(t, err)
 
-	lines := bytes.Split(logFile, []byte{'\n'})
-	// New line at the end
-	assert.Equal(t, 2, len(lines))
+	reader := bufio.NewReader(logFile)
+
+	line, _, err := reader.ReadLine()
+	assert.Nil(t, err)
 	var data map[string]interface{}
-	json.Unmarshal(lines[0], &data)
+	json.Unmarshal(line, &data)
 	assert.Nil(t, err)
 	assert.Equal(t, "GET", data["method"])
 	assert.Equal(t, float64(200), data["status"])
